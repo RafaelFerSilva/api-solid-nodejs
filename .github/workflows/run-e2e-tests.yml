@@ -9,13 +9,13 @@ jobs:
 
     services:
       postgres:
-        image: bitnami/postgresql
+        image: postgres:latest
         ports:
           - 5432:5432
         env:
-          POSTGRESQL_USERNAME: docker
-          POSTGRESQL_PASSWORD: docker
-          POSTGRESQL_DATABASE: apisolid
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: docker
+          POSTGRES_DB: apisolid
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
