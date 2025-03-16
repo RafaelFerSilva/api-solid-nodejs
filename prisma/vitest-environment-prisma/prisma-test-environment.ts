@@ -21,15 +21,44 @@ export default <Environment>{
   transformMode: 'ssr',
 
   async setup() {
-    const schema = randomUUID()
-    process.env.DATABASE_URL = generateDatabaseURL(schema)
-    execSync('npx prisma migrate deploy')
+    const schema = `test_${randomUUID().replace(/-/g, '')}`
+    const databaseURL = generateDatabaseURL(schema)
+
+    // Garante que o schema não existe antes de criar
+    try {
+      await prisma.$executeRawUnsafe(
+        `DROP SCHEMA IF EXISTS "${schema}" CASCADE`,
+      )
+    } catch (error) {
+      console.log('Error dropping schema:', error)
+    }
+
+    process.env.DATABASE_URL = databaseURL
+
+    // Aguarda para garantir que o schema foi removido
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    try {
+      execSync('npx prisma migrate deploy', {
+        env: {
+          ...process.env,
+          DATABASE_URL: databaseURL,
+        },
+      })
+    } catch (error) {
+      console.error('Error running migrations:', error)
+      throw error
+    }
 
     return {
       async teardown() {
-        await prisma.$executeRawUnsafe(
-          `DROP SCHEMA IF EXISTS "${schema}" CASCADE`,
-        )
+        try {
+          await prisma.$executeRawUnsafe(
+            `DROP SCHEMA IF EXISTS "${schema}" CASCADE`,
+          )
+        } catch (error) {
+          console.log('Error dropping schema on teardown:', error)
+        }
         await prisma.$disconnect()
       },
     }
